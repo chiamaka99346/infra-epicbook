@@ -8,7 +8,7 @@ terraform {
 
   backend "azurerm" {
     resource_group_name  = "epicbook-tfstate-rg"
-    storage_account_name = "epicbooktfstate"
+    storage_account_name = "epicbooktfstate2025"
     container_name       = "tfstate"
     key                  = "epicbook.terraform.tfstate"
   }
