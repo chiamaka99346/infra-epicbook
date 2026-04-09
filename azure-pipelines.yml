@@ -1,0 +1,158 @@
+trigger:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: "ubuntu-latest"
+
+variables:
+  - group: epicbook-infra-vars  # Variable group created in Azure DevOps Library
+  - name: TF_VERSION
+    value: "1.7.0"
+
+stages:
+  - stage: TerraformValidate
+    displayName: "Validate Terraform"
+    jobs:
+      - job: Validate
+        displayName: "Terraform Format & Validate"
+        steps:
+          - task: TerraformInstaller@1
+            displayName: "Install Terraform $(TF_VERSION)"
+            inputs:
+              terraformVersion: "$(TF_VERSION)"
+
+          - task: TerraformTaskV4@4
+            displayName: "Terraform Init"
+            inputs:
+              provider: "azurerm"
+              command: "init"
+              workingDirectory: "$(System.DefaultWorkingDirectory)"
+              backendServiceArm: "epicbook-azure-connection"
+              backendAzureRmResourceGroupName: "epicbook-tfstate-rg"
+              backendAzureRmStorageAccountName: "epicbooktfstate"
+              backendAzureRmContainerName: "tfstate"
+              backendAzureRmKey: "epicbook.terraform.tfstate"
+
+          - task: TerraformTaskV4@4
+            displayName: "Terraform Validate"
+            inputs:
+              provider: "azurerm"
+              command: "validate"
+              workingDirectory: "$(System.DefaultWorkingDirectory)"
+
+  - stage: TerraformPlan
+    displayName: "Terraform Plan"
+    dependsOn: TerraformValidate
+    jobs:
+      - job: Plan
+        displayName: "Terraform Plan"
+        steps:
+          - task: TerraformInstaller@1
+            displayName: "Install Terraform $(TF_VERSION)"
+            inputs:
+              terraformVersion: "$(TF_VERSION)"
+
+          - task: TerraformTaskV4@4
+            displayName: "Terraform Init"
+            inputs:
+              provider: "azurerm"
+              command: "init"
+              workingDirectory: "$(System.DefaultWorkingDirectory)"
+              backendServiceArm: "epicbook-azure-connection"
+              backendAzureRmResourceGroupName: "epicbook-tfstate-rg"
+              backendAzureRmStorageAccountName: "epicbooktfstate"
+              backendAzureRmContainerName: "tfstate"
+              backendAzureRmKey: "epicbook.terraform.tfstate"
+
+          - task: TerraformTaskV4@4
+            displayName: "Terraform Plan"
+            inputs:
+              provider: "azurerm"
+              command: "plan"
+              workingDirectory: "$(System.DefaultWorkingDirectory)"
+              environmentServiceNameAzureRM: "epicbook-azure-connection"
+            env:
+              TF_VAR_subscription_id: $(ARM_SUBSCRIPTION_ID)
+              TF_VAR_client_id: $(ARM_CLIENT_ID)
+              TF_VAR_client_secret: $(ARM_CLIENT_SECRET)
+              TF_VAR_tenant_id: $(ARM_TENANT_ID)
+              TF_VAR_ssh_public_key: $(SSH_PUBLIC_KEY)
+              TF_VAR_mysql_admin_password: $(MYSQL_ADMIN_PASSWORD)
+
+  - stage: TerraformApply
+    displayName: "Terraform Apply"
+    dependsOn: TerraformPlan
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - deployment: Apply
+        displayName: "Terraform Apply"
+        environment: "production"
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+
+                - task: TerraformInstaller@1
+                  displayName: "Install Terraform $(TF_VERSION)"
+                  inputs:
+                    terraformVersion: "$(TF_VERSION)"
+
+                - task: TerraformTaskV4@4
+                  displayName: "Terraform Init"
+                  inputs:
+                    provider: "azurerm"
+                    command: "init"
+                    workingDirectory: "$(System.DefaultWorkingDirectory)"
+                    backendServiceArm: "epicbook-azure-connection"
+                    backendAzureRmResourceGroupName: "epicbook-tfstate-rg"
+                    backendAzureRmStorageAccountName: "epicbooktfstate"
+                    backendAzureRmContainerName: "tfstate"
+                    backendAzureRmKey: "epicbook.terraform.tfstate"
+
+                - task: TerraformTaskV4@4
+                  displayName: "Terraform Apply"
+                  inputs:
+                    provider: "azurerm"
+                    command: "apply"
+                    workingDirectory: "$(System.DefaultWorkingDirectory)"
+                    environmentServiceNameAzureRM: "epicbook-azure-connection"
+                    commandOptions: "-auto-approve"
+                  env:
+                    TF_VAR_subscription_id: $(ARM_SUBSCRIPTION_ID)
+                    TF_VAR_client_id: $(ARM_CLIENT_ID)
+                    TF_VAR_client_secret: $(ARM_CLIENT_SECRET)
+                    TF_VAR_tenant_id: $(ARM_TENANT_ID)
+                    TF_VAR_ssh_public_key: $(SSH_PUBLIC_KEY)
+                    TF_VAR_mysql_admin_password: $(MYSQL_ADMIN_PASSWORD)
+
+                - bash: |
+                    echo "Extracting Terraform outputs..."
+                    FRONTEND_IP=$(terraform output -raw app_public_ip)
+                    BACKEND_IP=$(terraform output -raw backend_private_ip)
+                    MYSQL_FQDN=$(terraform output -raw mysql_fqdn)
+
+                    echo "##vso[task.setvariable variable=APP_PUBLIC_IP;isOutput=true]$FRONTEND_IP"
+                    echo "##vso[task.setvariable variable=BACKEND_PRIVATE_IP;isOutput=true]$BACKEND_IP"
+                    echo "##vso[task.setvariable variable=MYSQL_FQDN;isOutput=true]$MYSQL_FQDN"
+
+                    echo "Frontend IP: $FRONTEND_IP"
+                    echo "Backend IP: $BACKEND_IP"
+                    echo "MySQL FQDN: $MYSQL_FQDN"
+
+                    # Save to artifact for App pipeline to consume
+                    echo "APP_PUBLIC_IP=$FRONTEND_IP" > $(Build.ArtifactStagingDirectory)/terraform_outputs.env
+                    echo "BACKEND_PRIVATE_IP=$BACKEND_IP" >> $(Build.ArtifactStagingDirectory)/terraform_outputs.env
+                    echo "MYSQL_FQDN=$MYSQL_FQDN" >> $(Build.ArtifactStagingDirectory)/terraform_outputs.env
+                  displayName: "Extract and Publish Terraform Outputs"
+                  workingDirectory: "$(System.DefaultWorkingDirectory)"
+                  name: TFOutputs
+
+                - task: PublishBuildArtifacts@1
+                  displayName: "Publish Terraform Outputs as Artifact"
+                  inputs:
+                    PathtoPublish: "$(Build.ArtifactStagingDirectory)/terraform_outputs.env"
+                    ArtifactName: "terraform-outputs"
+                    publishLocation: "Container"
