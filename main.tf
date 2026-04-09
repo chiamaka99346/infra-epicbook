@@ -280,6 +280,10 @@ resource "azurerm_mysql_flexible_server" "epicbook" {
   }
 
   depends_on = [azurerm_private_dns_zone_virtual_network_link.mysql]
+
+  lifecycle {
+    ignore_changes = [zone, high_availability]
+  }
 }
 
 # MySQL Database
