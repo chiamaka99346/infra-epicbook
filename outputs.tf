@@ -27,3 +27,8 @@ output "resource_group_name" {
   description = "Resource group name"
   value       = azurerm_resource_group.epicbook.name
 }
+
+output "backend_public_ip" {
+  description = "Public IP of the backend VM"
+  value       = azurerm_public_ip.backend.ip_address
+}

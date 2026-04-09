@@ -127,7 +127,7 @@ resource "azurerm_network_security_group" "backend" {
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "22"
-    source_address_prefix      = "10.0.0.0/16"
+    source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
 
@@ -177,6 +177,7 @@ resource "azurerm_network_interface" "backend" {
     name                          = "backend-ip-config"
     subnet_id                     = azurerm_subnet.private.id
     private_ip_address_allocation = "Dynamic"
+     public_ip_address_id          = azurerm_public_ip.backend.id
   }
 }
 
@@ -288,4 +289,12 @@ resource "azurerm_mysql_flexible_database" "epicbook" {
   server_name         = azurerm_mysql_flexible_server.epicbook.name
   charset             = "utf8mb4"
   collation           = "utf8mb4_unicode_ci"
+}
+
+resource "azurerm_public_ip" "backend" {
+  name                = "epicbook-backend-pip"
+  location            = azurerm_resource_group.epicbook.location
+  resource_group_name = azurerm_resource_group.epicbook.name
+  allocation_method   = "Static"
+  sku                 = "Standard"
 }
