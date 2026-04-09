@@ -6,3 +6,4 @@
 terraform_outputs.env
 terraform.tfvars
 terraform.tfvars.example
+myagent/

@@ -43,6 +43,22 @@ resource "azurerm_subnet" "public" {
   virtual_network_name = azurerm_virtual_network.epicbook.name
   address_prefixes     = ["10.0.1.0/24"]
 
+}
+
+# Private Subnet (Backend)
+resource "azurerm_subnet" "private" {
+  name                 = "epicbook-private-subnet"
+  resource_group_name  = azurerm_resource_group.epicbook.name
+  virtual_network_name = azurerm_virtual_network.epicbook.name
+  address_prefixes     = ["10.0.2.0/24"]
+}
+
+resource "azurerm_subnet" "mysql" {
+  name                 = "epicbook-mysql-subnet"
+  resource_group_name  = azurerm_resource_group.epicbook.name
+  virtual_network_name = azurerm_virtual_network.epicbook.name
+  address_prefixes     = ["10.0.3.0/24"]
+
   delegation {
     name = "mysql-delegation"
     service_delegation {
@@ -52,14 +68,6 @@ resource "azurerm_subnet" "public" {
       ]
     }
   }
-}
-
-# Private Subnet (Backend)
-resource "azurerm_subnet" "private" {
-  name                 = "epicbook-private-subnet"
-  resource_group_name  = azurerm_resource_group.epicbook.name
-  virtual_network_name = azurerm_virtual_network.epicbook.name
-  address_prefixes     = ["10.0.2.0/24"]
 }
 
 # NSG for Frontend
@@ -263,7 +271,7 @@ resource "azurerm_mysql_flexible_server" "epicbook" {
   sku_name               = "B_Standard_B1ms"
   version                = "8.0.21"
 
-  delegated_subnet_id    = azurerm_subnet.public.id
+  delegated_subnet_id    = azurerm_subnet.mysql.id
   private_dns_zone_id    = azurerm_private_dns_zone.mysql.id
 
   storage {
