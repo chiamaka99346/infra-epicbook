@@ -31,7 +31,7 @@ stages:
               workingDirectory: "$(System.DefaultWorkingDirectory)"
               backendServiceArm: "epicbook-azure-connection"
               backendAzureRmResourceGroupName: "epicbook-tfstate-rg"
-              backendAzureRmStorageAccountName: "epicbooktfstate"
+              backendAzureRmStorageAccountName: "epicbooktfstate2025"
               backendAzureRmContainerName: "tfstate"
               backendAzureRmKey: "epicbook.terraform.tfstate"
 
@@ -62,7 +62,7 @@ stages:
               workingDirectory: "$(System.DefaultWorkingDirectory)"
               backendServiceArm: "epicbook-azure-connection"
               backendAzureRmResourceGroupName: "epicbook-tfstate-rg"
-              backendAzureRmStorageAccountName: "epicbooktfstate"
+              backendAzureRmStorageAccountName: "epicbooktfstate2025"
               backendAzureRmContainerName: "tfstate"
               backendAzureRmKey: "epicbook.terraform.tfstate"
 
@@ -108,7 +108,7 @@ stages:
                     workingDirectory: "$(System.DefaultWorkingDirectory)"
                     backendServiceArm: "epicbook-azure-connection"
                     backendAzureRmResourceGroupName: "epicbook-tfstate-rg"
-                    backendAzureRmStorageAccountName: "epicbooktfstate"
+                    backendAzureRmStorageAccountName: "epicbooktfstate2025"
                     backendAzureRmContainerName: "tfstate"
                     backendAzureRmKey: "epicbook.terraform.tfstate"
 
