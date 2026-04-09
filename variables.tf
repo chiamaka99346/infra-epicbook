@@ -49,9 +49,7 @@ variable "ssh_public_key" {
 }
 
 variable "mysql_server_name" {
-  description = "MySQL Flexible Server name (must be globally unique)"
-  type        = string
-  default     = "epicbook-mysql-srv"
+  default = "epicbook-mysql-srv-2"
 }
 
 variable "mysql_admin_user" {

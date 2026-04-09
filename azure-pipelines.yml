@@ -127,6 +127,7 @@ stages:
                     TF_VAR_tenant_id: $(ARM_TENANT_ID)
                     TF_VAR_ssh_public_key: $(SSH_PUBLIC_KEY)
                     TF_VAR_mysql_admin_password: $(MYSQL_ADMIN_PASSWORD)
+                    TF_VAR_mysql_server_name: $(MYSQL_SERVER_NAME)
 
                 - bash: |
                     echo "Extracting Terraform outputs..."
